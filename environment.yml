@@ -1,0 +1,12 @@
+name: where-is-this-brain
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - jupyterlab
+  - numpy
+  - pandas
+  - pyyaml
+  - nibabel
+  - nilearn
+  - scipy

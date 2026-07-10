@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Where Is This Brain?",
+    "slug": "where-is-this-brain",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "platforms": ["ios", "android", "web"],
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
+

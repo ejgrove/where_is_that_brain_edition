@@ -1,0 +1,77 @@
+project:
+  name: where-is-this-brain
+  display_name: Where Is This Brain?
+  platform: expo
+  targets:
+    - ios
+    - android
+    - web
+
+paths:
+  data_raw: data/raw
+  data_processed: data/processed
+  outputs: outputs
+  src: src
+  notebooks: notebooks
+
+atlas:
+  default: nilearn_destrieux_fsaverage5
+  reference_space: mni152
+  candidates:
+    - id: nilearn_destrieux_fsaverage5
+      status: active
+      description: Free/open fsaverage5 surface with Destrieux sulco-gyral labels for cortical lobes and surface landmarks.
+    - id: prototype_schematic
+      status: fallback
+      description: Hand-authored SVG fallback if the processed atlas surface is unavailable.
+    - id: freesurfer_dkt
+      status: planned
+      description: Beginner-friendly cortical atlas for structural anatomy.
+    - id: freesurfer_destrieux
+      status: planned
+      description: Higher-detail sulci and gyri atlas for harder structural layers.
+    - id: freesurfer_aseg
+      status: planned
+      description: Broad deep structures, basal ganglia, ventricles, and limbic anatomy.
+    - id: freesurfer_subregions
+      status: planned
+      description: Refinement modules for thalamus, hypothalamus, brainstem, hippocampus, and amygdala.
+    - id: ebrains_julich
+      status: planned
+      description: Detailed cytoarchitectonic atlas for selected nuclei and higher-fidelity deep structures.
+    - id: hcp_mmp_1_0
+      status: planned
+      description: Functional cortical overlay for advanced gameplay layers.
+    - id: harvard_oxford
+      status: optional
+      description: Broad comparison atlas for preprocessing checks and fallback subcortical labels.
+  strategy:
+    structural_surface: nilearn_destrieux_fsaverage5
+    structural_surface_detail: freesurfer_destrieux
+    deep_structures: freesurfer_aseg
+    deep_structure_refinement:
+      - freesurfer_subregions
+      - ebrains_julich
+    functional_cortex: hcp_mmp_1_0
+
+gameplay:
+  default_layer: cortical_lobes
+  rounds_per_player: 5
+  selection_mode: highlighted_region
+  borders_visible: true
+  allow_view_switching: true
+  allow_zoom_controls: true
+  local_multiplayer: true
+
+data_handling:
+  classification: project_specific
+  notes: Atlas source files and derived gameplay meshes should live under data/ and be documented before use.
+
+content_scope:
+  philosophy: Focus on large, functionally relevant neuroanatomy first and leave very fine subregions for later layers.
+  priorities:
+    - structural_surface
+    - limbic_diencephalon_and_endocrine
+    - basal_ganglia_and_midbrain
+    - brainstem_and_cerebellum
+    - functional_cortex
