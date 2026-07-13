@@ -150,11 +150,12 @@ export function OrthogonalSliceMap({
   }
   const displayCoordinate = currentCoordinate;
   const viewportAvailableWidth = Math.max(300, windowWidth - 36);
-  const sideBySidePanelGap = 12;
+  const sideBySidePanelGap = 6;
   const sideBySidePanelWidth =
     windowWidth >= 920
-      ? Math.max(240, Math.min(390, (viewportAvailableWidth - sideBySidePanelGap * 2) / 3))
+      ? Math.max(230, Math.min(360, (viewportAvailableWidth - sideBySidePanelGap * 2) / 3))
       : Math.min(330, viewportAvailableWidth - 18);
+  const sliceViewportHeight = windowWidth >= 920 ? 260 : 250;
   const previewRegionId =
     !feedbackRegionId && settings.highlightSelection ? previewGuess?.selectedRegionId ?? null : null;
   const incorrectFeedbackRegionId =
@@ -256,7 +257,7 @@ export function OrthogonalSliceMap({
           const axisMax = maxAxisValue(viewId, atlas.dimensions);
           const crosshair = coordinateToSlicePoint(viewId, displayCoordinate, atlas.dimensions);
           const aspectRatio = slice.cols / slice.rows;
-          const viewportWidth = Math.max(220, sideBySidePanelWidth - 42);
+          const viewportWidth = sliceViewportHeight * aspectRatio;
           const measurement = panelMeasurements[viewId];
           const panResponder = PanResponder.create({
             onStartShouldSetPanResponder: () => interactionEnabled,
@@ -310,9 +311,9 @@ export function OrthogonalSliceMap({
                 <Text style={styles.panelHint}>{meta.axisDescription}</Text>
               </View>
 
-              <View style={styles.sliceFrame}>
+              <View style={[styles.sliceFrame, { height: sliceViewportHeight + 14 }]}>
                 <View
-                  style={[styles.sliceViewport, { width: viewportWidth, height: viewportWidth / aspectRatio }]}
+                  style={[styles.sliceViewport, { width: viewportWidth, height: sliceViewportHeight }]}
                   onLayout={(event) => handlePanelLayout(viewId, event)}
                 >
                   <Text style={[styles.edgeTag, styles.edgeTagTop]}>{meta.topTag}</Text>
@@ -940,7 +941,7 @@ const styles = StyleSheet.create({
   },
   panelRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 6,
     paddingBottom: 2,
   },
   panelCard: {
@@ -948,14 +949,14 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(247, 243, 234, 0.08)',
-    padding: 12,
-    gap: 8,
+    padding: 8,
+    gap: 6,
   },
   panelHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    gap: 12,
+    gap: 8,
   },
   panelTitle: {
     color: '#f7f3ea',
@@ -978,8 +979,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(247, 243, 234, 0.07)',
     borderRadius: 16,
-    padding: 8,
+    padding: 6,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   sliceViewport: {
     position: 'relative',
