@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutChangeEvent,
   PanResponder,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -148,8 +149,12 @@ export function OrthogonalSliceMap({
     );
   }
   const displayCoordinate = currentCoordinate;
-  const viewportTargetHeight = windowWidth < 430 ? 315 : 410;
   const viewportAvailableWidth = Math.max(300, windowWidth - 36);
+  const sideBySidePanelGap = 12;
+  const sideBySidePanelWidth =
+    windowWidth >= 920
+      ? Math.max(240, Math.min(390, (viewportAvailableWidth - sideBySidePanelGap * 2) / 3))
+      : Math.min(330, viewportAvailableWidth - 18);
   const previewRegionId =
     !feedbackRegionId && settings.highlightSelection ? previewGuess?.selectedRegionId ?? null : null;
   const incorrectFeedbackRegionId =
@@ -212,7 +217,11 @@ export function OrthogonalSliceMap({
         </View>
       </View>
 
-      <View style={styles.panelStack}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.panelRow}
+      >
         {SLICE_VIEW_ORDER.map((viewId) => {
           const slice = extractSlice(viewId, atlas, displayCoordinate);
           const tissueRuns = buildValueRuns(slice.cols, slice.rows, slice.tissueValues);
@@ -247,11 +256,7 @@ export function OrthogonalSliceMap({
           const axisMax = maxAxisValue(viewId, atlas.dimensions);
           const crosshair = coordinateToSlicePoint(viewId, displayCoordinate, atlas.dimensions);
           const aspectRatio = slice.cols / slice.rows;
-          const viewportWidth = Math.min(
-            viewportAvailableWidth,
-            860,
-            Math.max(340, viewportTargetHeight * aspectRatio)
-          );
+          const viewportWidth = Math.max(220, sideBySidePanelWidth - 42);
           const measurement = panelMeasurements[viewId];
           const panResponder = PanResponder.create({
             onStartShouldSetPanResponder: () => interactionEnabled,
@@ -294,7 +299,7 @@ export function OrthogonalSliceMap({
           });
 
           return (
-            <View key={viewId} style={styles.panelCard}>
+            <View key={viewId} style={[styles.panelCard, { width: sideBySidePanelWidth }]}>
               <View style={styles.panelHeader}>
                 <View>
                   <Text style={styles.panelTitle}>{meta.label}</Text>
@@ -429,7 +434,7 @@ export function OrthogonalSliceMap({
             </View>
           );
         })}
-      </View>
+      </ScrollView>
 
       <View style={styles.axisTrackStack}>
         <AxisTrack
@@ -933,8 +938,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  panelStack: {
+  panelRow: {
+    flexDirection: 'row',
     gap: 12,
+    paddingBottom: 2,
   },
   panelCard: {
     backgroundColor: '#152c36',
