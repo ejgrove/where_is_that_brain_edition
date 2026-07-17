@@ -97,7 +97,7 @@ export function BrainMap({
   };
 
   const handleRegionPress = (regionId: string) => {
-    if (!interactionEnabled || !settings.highlightSelection) {
+    if (!interactionEnabled || !settings.learningMode) {
       return;
     }
 
@@ -108,7 +108,7 @@ export function BrainMap({
   };
 
   const handlePinDrop = (event: { nativeEvent: { locationX: number; locationY: number } }) => {
-    if (!interactionEnabled || settings.highlightSelection || svgWidthPx <= 0) {
+    if (!interactionEnabled || settings.learningMode || svgWidthPx <= 0) {
       return;
     }
 
@@ -222,7 +222,7 @@ export function BrainMap({
                   const isIncorrectFeedback = region.id === incorrectFeedbackRegionId;
                   const isCorrectFeedback = isFeedback;
                   const isPreviewSelection =
-                    !feedbackRegionId && settings.highlightSelection && isSelected;
+                    !feedbackRegionId && settings.learningMode && isSelected;
 
                   const fillColor = isIncorrectFeedback
                     ? '#c74d4d'

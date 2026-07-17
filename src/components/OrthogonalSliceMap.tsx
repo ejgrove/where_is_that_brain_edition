@@ -166,7 +166,7 @@ export function OrthogonalSliceMap({
       : Math.min(330, viewportAvailableWidth - 18);
   const sliceViewportHeight = windowWidth >= 920 ? 260 : 250;
   const previewRegionId =
-    !feedbackRegionId && settings.highlightSelection ? previewGuess?.selectedRegionId ?? null : null;
+    !feedbackRegionId && settings.learningMode ? previewGuess?.selectedRegionId ?? null : null;
   const correctFeedbackRegionId = feedbackRegionId;
   const previewValue = previewRegionId ? atlas.regionValueById[previewRegionId] ?? 0 : 0;
   const incorrectFeedbackValues = Array.from(
@@ -511,9 +511,11 @@ export function OrthogonalSliceMap({
           {feedbackRegionId
             ? `Incorrect labeled choices stay red, and ${regionById[feedbackRegionId]?.label ?? 'the correct region'} stays green while you explore the slices.`
             : previewGuess?.coordinate
-              ? selectedRegionLabel
-                ? `Crosshair is currently inside ${selectedRegionLabel}.`
-                : 'Crosshair is currently outside the labeled teaching regions in this layer.'
+              ? settings.learningMode
+                ? selectedRegionLabel
+                  ? `Crosshair is currently inside ${selectedRegionLabel}.`
+                  : 'Crosshair is currently outside the labeled teaching regions in this layer.'
+                : 'Coordinate selected. Confirm it when you are ready.'
               : 'Move the crosshair until it lands in the structure you want, then confirm.'}
         </Text>
         <Text style={styles.statusBody}>

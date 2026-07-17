@@ -30,7 +30,7 @@ const defaultConfig: GameConfig = {
   roundsPerPlayer: 5,
   players: ['Player 1'],
   settings: {
-    highlightSelection: true,
+    learningMode: false,
     showBorders: true,
   },
 };
@@ -328,16 +328,15 @@ export default function App() {
               <Text style={styles.sectionTitle}>Settings</Text>
               <View style={styles.toggleRow}>
                 <View style={styles.toggleCopy}>
-                  <Text style={styles.toggleTitle}>Highlight selected region</Text>
+                  <Text style={styles.toggleTitle}>Learning mode</Text>
                   <Text style={styles.toggleBody}>
-                    Default mode. On slice atlases this fills the structure under your crosshair.
-                    If off, the crosshair still marks the coordinate but the region stays unfilled
-                    until reveal.
+                    Shows the name and highlight of the region under the crosshair while choosing
+                    an answer. Keep this off for quiz play.
                   </Text>
                 </View>
                 <Switch
-                  value={config.settings.highlightSelection}
-                  onValueChange={(value) => updateSettings({ highlightSelection: value })}
+                  value={config.settings.learningMode}
+                  onValueChange={(value) => updateSettings({ learningMode: value })}
                   trackColor={{ false: '#6f7f86', true: '#e4863a' }}
                   thumbColor="#f7f3ea"
                 />
@@ -476,9 +475,11 @@ export default function App() {
                   </Text>
                   <Text style={styles.selectionMeta}>
                     {pendingGuess?.coordinate
-                      ? pendingGuess.selectedRegionId
-                        ? `Coordinate ${formatCoordinate(pendingGuess.coordinate)} is inside ${pendingRegionLabel ?? 'a labeled region'}.`
-                        : `Coordinate ${formatCoordinate(pendingGuess.coordinate)} is outside the labeled teaching regions in this atlas.`
+                      ? config.settings.learningMode
+                        ? pendingGuess.selectedRegionId
+                          ? `Coordinate ${formatCoordinate(pendingGuess.coordinate)} is inside ${pendingRegionLabel ?? 'a labeled region'}.`
+                          : `Coordinate ${formatCoordinate(pendingGuess.coordinate)} is outside the labeled teaching regions in this atlas.`
+                        : `Coordinate selected: ${formatCoordinate(pendingGuess.coordinate)}.`
                       : 'No coordinate selected yet.'}
                   </Text>
                   <View style={styles.confirmRow}>

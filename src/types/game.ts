@@ -46,7 +46,7 @@ export type GameLayer = {
 };
 
 export type GameSettings = {
-  highlightSelection: boolean;
+  learningMode: boolean;
   showBorders: boolean;
 };
 
