@@ -85,6 +85,11 @@ export type TurnFeedback = PendingGuess & {
   promptRegionId: string;
 };
 
+export type PlayerAnswer = PendingGuess & {
+  playerIndex: number;
+  correct: boolean;
+};
+
 export type GameSession = {
   layerId: string;
   roundsPerPlayer: number;

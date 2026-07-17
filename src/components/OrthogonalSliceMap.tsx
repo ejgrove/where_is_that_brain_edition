@@ -23,9 +23,17 @@ type OrthogonalSliceMapProps = {
   settings: GameSettings;
   previewGuess: PendingGuess | null;
   feedbackRegionId: string | null;
+  revealedAnswers: RevealedAnswerGroup[];
   turnKey: number;
   interactionEnabled: boolean;
   onPreviewGuess: (guess: PendingGuess) => void;
+};
+
+type RevealedAnswerGroup = {
+  key: string;
+  regionId: string | null;
+  names: string[];
+  coordinate?: AtlasCoordinate | null;
 };
 
 type SliceViewId = Extract<BrainViewId, 'midSagittal' | 'coronal' | 'axial'>;
@@ -97,6 +105,7 @@ export function OrthogonalSliceMap({
   settings,
   previewGuess,
   feedbackRegionId,
+  revealedAnswers,
   turnKey,
   interactionEnabled,
   onPreviewGuess,
@@ -158,17 +167,16 @@ export function OrthogonalSliceMap({
   const sliceViewportHeight = windowWidth >= 920 ? 260 : 250;
   const previewRegionId =
     !feedbackRegionId && settings.highlightSelection ? previewGuess?.selectedRegionId ?? null : null;
-  const incorrectFeedbackRegionId =
-    feedbackRegionId &&
-    previewGuess?.selectedRegionId &&
-    previewGuess.selectedRegionId !== feedbackRegionId
-      ? previewGuess.selectedRegionId
-      : null;
   const correctFeedbackRegionId = feedbackRegionId;
   const previewValue = previewRegionId ? atlas.regionValueById[previewRegionId] ?? 0 : 0;
-  const incorrectFeedbackValue = incorrectFeedbackRegionId
-    ? atlas.regionValueById[incorrectFeedbackRegionId] ?? 0
-    : 0;
+  const incorrectFeedbackValues = Array.from(
+    new Set(
+      revealedAnswers
+        .filter((answer) => answer.regionId && answer.regionId !== feedbackRegionId)
+        .map((answer) => atlas.regionValueById[answer.regionId ?? ''] ?? 0)
+        .filter((value) => value > 0)
+    )
+  );
   const correctFeedbackValue = correctFeedbackRegionId
     ? atlas.regionValueById[correctFeedbackRegionId] ?? 0
     : 0;
@@ -229,14 +237,14 @@ export function OrthogonalSliceMap({
           const previewRuns = previewValue
             ? buildRuns(slice.cols, slice.rows, slice.groupValues, (value) => value === previewValue)
             : [];
-          const incorrectFeedbackRuns = incorrectFeedbackValue
-            ? buildRuns(
-                slice.cols,
-                slice.rows,
-                slice.groupValues,
-                (value) => value === incorrectFeedbackValue
-              )
-            : [];
+          const incorrectFeedbackRuns = incorrectFeedbackValues.flatMap((feedbackValue) =>
+            buildRuns(
+              slice.cols,
+              slice.rows,
+              slice.groupValues,
+              (value) => value === feedbackValue
+            )
+          );
           const correctFeedbackRuns = correctFeedbackValue
             ? buildRuns(slice.cols, slice.rows, slice.groupValues, (value) => value === correctFeedbackValue)
             : [];
@@ -429,6 +437,34 @@ export function OrthogonalSliceMap({
                       strokeWidth={0.32}
                     />
                   </Svg>
+                  {feedbackRegionId
+                    ? revealedAnswers.map((answer) => {
+                        if (!answer.coordinate) {
+                          return null;
+                        }
+                        const answerPoint = coordinateToSlicePoint(
+                          viewId,
+                          answer.coordinate,
+                          atlas.dimensions
+                        );
+                        return (
+                          <View
+                            key={`${viewId}-${answer.key}`}
+                            pointerEvents="none"
+                            style={[
+                              styles.answerMarker,
+                              {
+                                left: `${((answerPoint.x + 0.5) / slice.cols) * 100}%`,
+                                top: `${((answerPoint.y + 0.5) / slice.rows) * 100}%`,
+                              },
+                            ]}
+                          >
+                            <Text style={styles.answerMarkerNames}>{answer.names.join(' + ')}</Text>
+                            <View style={styles.answerMarkerDot} />
+                          </View>
+                        );
+                      })
+                    : null}
                   <View style={styles.sliceTouchLayer} {...panResponder.panHandlers} />
                 </View>
               </View>
@@ -473,9 +509,7 @@ export function OrthogonalSliceMap({
       <View style={styles.statusCard}>
         <Text style={styles.statusLabel}>
           {feedbackRegionId
-            ? incorrectFeedbackRegionId
-              ? `Your choice stays red, and ${regionById[feedbackRegionId]?.label ?? 'the correct region'} stays green while you explore the slices.`
-              : `Correct region shown in green while you explore the slices: ${regionById[feedbackRegionId]?.label ?? 'the correct region'}.`
+            ? `Incorrect labeled choices stay red, and ${regionById[feedbackRegionId]?.label ?? 'the correct region'} stays green while you explore the slices.`
             : previewGuess?.coordinate
               ? selectedRegionLabel
                 ? `Crosshair is currently inside ${selectedRegionLabel}.`
@@ -483,7 +517,7 @@ export function OrthogonalSliceMap({
               : 'Move the crosshair until it lands in the structure you want, then confirm.'}
         </Text>
         <Text style={styles.statusBody}>
-          Labels stay off the map itself so the boundaries and slice orientation do the teaching.
+          Player names mark their submitted coordinates after everyone has answered.
         </Text>
       </View>
     </View>
@@ -989,6 +1023,35 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignSelf: 'center',
     backgroundColor: '#081118',
+  },
+  answerMarker: {
+    position: 'absolute',
+    zIndex: 5,
+    width: 120,
+    marginLeft: -60,
+    marginTop: -35,
+    alignItems: 'center',
+  },
+  answerMarkerNames: {
+    maxWidth: 120,
+    color: '#13252d',
+    backgroundColor: '#f2cf9f',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  answerMarkerDot: {
+    width: 9,
+    height: 9,
+    marginTop: 2,
+    borderRadius: 5,
+    backgroundColor: '#dd7f36',
+    borderColor: '#fff5e8',
+    borderWidth: 1,
   },
   sliceTouchLayer: {
     position: 'absolute',

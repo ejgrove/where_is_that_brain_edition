@@ -16,20 +16,18 @@ export function createScores(playerCount: number): number[] {
 export function buildTurnDeck(layerIdOrLayer: { id: string; regions: { id: string }[] } | string, playerCount: number, roundsPerPlayer: number): Turn[] {
   const layer = typeof layerIdOrLayer === 'string' ? getLayerById(layerIdOrLayer) : layerIdOrLayer;
   const promptIds = layer.regions.map((region) => region.id);
-  const totalTurns = Math.max(1, playerCount * roundsPerPlayer);
   const deck: Turn[] = [];
   let pool = shuffle(promptIds);
 
-  for (let index = 0; index < totalTurns; index += 1) {
+  for (let roundIndex = 0; roundIndex < Math.max(1, roundsPerPlayer); roundIndex += 1) {
     if (pool.length === 0) {
       pool = shuffle(promptIds);
     }
 
-    const promptRegionId = pool.shift() ?? promptIds[index % promptIds.length];
-    deck.push({
-      promptRegionId,
-      playerIndex: index % playerCount,
-    });
+    const promptRegionId = pool.shift() ?? promptIds[roundIndex % promptIds.length];
+    for (let playerIndex = 0; playerIndex < Math.max(1, playerCount); playerIndex += 1) {
+      deck.push({ promptRegionId, playerIndex });
+    }
   }
 
   return deck;
@@ -45,4 +43,3 @@ function shuffle<T>(items: T[]): T[] {
 
   return copy;
 }
-

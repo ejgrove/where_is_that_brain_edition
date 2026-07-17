@@ -16,6 +16,7 @@ import type {
   GameConfig,
   GameSession,
   PendingGuess,
+  PlayerAnswer,
   TurnFeedback,
 } from './src/types/game';
 import { buildTurnDeck, createScores, normalizePlayers } from './src/utils/game';
@@ -40,6 +41,7 @@ export default function App() {
   const [session, setSession] = useState<GameSession | null>(null);
   const [feedback, setFeedback] = useState<TurnFeedback | null>(null);
   const [pendingGuess, setPendingGuess] = useState<PendingGuess | null>(null);
+  const [roundAnswers, setRoundAnswers] = useState<PlayerAnswer[]>([]);
 
   const activeLayer = useMemo(
     () => getLayerById(session?.layerId ?? config.layerId),
@@ -103,6 +105,7 @@ export default function App() {
       });
       setFeedback(null);
       setPendingGuess(null);
+      setRoundAnswers([]);
       setScreen(players.length > 1 ? 'handoff' : 'play');
     });
   };
@@ -127,29 +130,51 @@ export default function App() {
       return;
     }
 
-    const correct = pendingGuess.selectedRegionId === currentTurn.promptRegionId;
+    const answer: PlayerAnswer = {
+      ...pendingGuess,
+      playerIndex: currentTurn.playerIndex,
+      correct: pendingGuess.selectedRegionId === currentTurn.promptRegionId,
+    };
+    const completedAnswers = [...roundAnswers, answer];
+    const nextTurn = session.deck[session.turnIndex + 1];
+    const roundComplete = !nextTurn || nextTurn.promptRegionId !== currentTurn.promptRegionId;
 
-    if (correct) {
+    if (roundComplete) {
       setSession((current) => {
         if (!current) {
           return current;
         }
 
         const nextScores = [...current.scores];
-        nextScores[currentTurn.playerIndex] += 100;
+        completedAnswers.forEach((completedAnswer) => {
+          if (completedAnswer.correct) {
+            nextScores[completedAnswer.playerIndex] += 100;
+          }
+        });
 
         return {
           ...current,
           scores: nextScores,
         };
       });
+      setRoundAnswers(completedAnswers);
+      setFeedback({
+        correct: answer.correct,
+        selectedRegionId: answer.selectedRegionId,
+        promptRegionId: currentTurn.promptRegionId,
+        pin: answer.pin,
+        coordinate: answer.coordinate,
+      });
+      return;
     }
 
-    setFeedback({
-      correct,
-      selectedRegionId: pendingGuess.selectedRegionId,
-      promptRegionId: currentTurn.promptRegionId,
-      pin: pendingGuess.pin,
+    startTransition(() => {
+      setRoundAnswers(completedAnswers);
+      setSession((current) =>
+        current ? { ...current, turnIndex: current.turnIndex + 1 } : current
+      );
+      setPendingGuess(null);
+      setScreen('handoff');
     });
   };
 
@@ -162,6 +187,7 @@ export default function App() {
     if (isLastTurn) {
       setFeedback(null);
       setPendingGuess(null);
+      setRoundAnswers([]);
       setScreen('results');
       return;
     }
@@ -177,6 +203,7 @@ export default function App() {
       );
       setFeedback(null);
       setPendingGuess(null);
+      setRoundAnswers([]);
       setScreen(session.players.length > 1 ? 'handoff' : 'play');
     });
   };
@@ -184,6 +211,7 @@ export default function App() {
   const handleRestart = () => {
     setFeedback(null);
     setPendingGuess(null);
+    setRoundAnswers([]);
     setSession(null);
     setScreen('setup');
   };
@@ -191,6 +219,7 @@ export default function App() {
   const handleExitToHome = () => {
     setFeedback(null);
     setPendingGuess(null);
+    setRoundAnswers([]);
     setSession(null);
     setScreen('setup');
   };
@@ -207,9 +236,8 @@ export default function App() {
   const pendingRegionLabel = pendingGuess
     ? activeLayer.regions.find((region) => region.id === pendingGuess.selectedRegionId)?.label ?? null
     : null;
-  const feedbackSelectedRegionLabel = feedback
-    ? activeLayer.regions.find((region) => region.id === feedback.selectedRegionId)?.label ?? null
-    : null;
+  const groupedRoundAnswers = groupAnswersByRegion(roundAnswers, session?.players ?? [], activeLayer);
+  const roundNumber = session ? Math.floor(session.turnIndex / session.players.length) + 1 : 1;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -251,7 +279,7 @@ export default function App() {
               </Text>
               <View style={styles.stack}>
                 {config.players.map((player, index) => (
-                  <View key={`${player}-${index}`} style={styles.playerRow}>
+                  <View key={`player-${index}`} style={styles.playerRow}>
                     <TextInput
                       value={player}
                       onChangeText={(value) => handlePlayerChange(index, value)}
@@ -341,7 +369,8 @@ export default function App() {
             <Text style={styles.eyebrow}>Pass The Phone</Text>
             <Text style={styles.handoffTitle}>{currentPlayerName}</Text>
             <Text style={styles.handoffBody}>
-              Turn {session?.turnIndex ? session.turnIndex + 1 : 1} of {session?.deck.length ?? 0}
+              Round {roundNumber} of {session?.roundsPerPlayer ?? 0} • Player{' '}
+              {(currentTurn.playerIndex ?? 0) + 1} of {session?.players.length ?? 0}
             </Text>
             <Text style={styles.handoffHint}>
               When they are ready, tap below to show the prompt and brain map.
@@ -365,7 +394,8 @@ export default function App() {
             <View style={styles.scoreCard}>
               <View>
                 <Text style={styles.scoreEyebrow}>
-                  {currentPlayerName} • Turn {session.turnIndex + 1}/{session.deck.length}
+                  {currentPlayerName} • Round {roundNumber}/{session.roundsPerPlayer} • Player{' '}
+                  {currentTurn.playerIndex + 1}/{session.players.length}
                 </Text>
                 <Text style={styles.promptTitle}>Find {promptRegion.label}</Text>
                 <Text style={styles.promptSubtitle}>{activeLayer.description}</Text>
@@ -379,7 +409,10 @@ export default function App() {
               {session.players.map((player, index) => {
                 const active = index === currentTurn.playerIndex;
                 return (
-                  <View key={player} style={[styles.scorePill, active && styles.scorePillActive]}>
+                  <View
+                    key={`${player}-${index}`}
+                    style={[styles.scorePill, active && styles.scorePillActive]}
+                  >
                     <Text style={[styles.scorePlayer, active && styles.scorePlayerActive]}>{player}</Text>
                     <Text style={[styles.scoreValue, active && styles.scorePlayerActive]}>
                       {session.scores[index]}
@@ -395,6 +428,7 @@ export default function App() {
                 settings={config.settings}
                 previewGuess={pendingGuess}
                 feedbackRegionId={feedback?.promptRegionId ?? null}
+                revealedAnswers={feedback ? groupedRoundAnswers : []}
                 turnKey={session.turnIndex}
                 interactionEnabled
                 onPreviewGuess={handlePreviewGuess}
@@ -402,17 +436,24 @@ export default function App() {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Turn Feedback</Text>
+              <Text style={styles.sectionTitle}>Round Feedback</Text>
               {feedback ? (
                 <>
-                  <Text style={[styles.feedbackTitle, feedback.correct ? styles.correct : styles.incorrect]}>
-                    {feedback.correct ? 'Correct.' : 'Not quite.'}
-                  </Text>
+                  <Text style={[styles.feedbackTitle, styles.correct]}>Round complete.</Text>
                   <Text style={styles.sectionBody}>
-                    {feedback.correct
-                      ? `${currentPlayerName} earned 100 points for locating ${promptRegion.label}.`
-                      : `Your answer: ${feedbackSelectedRegionLabel ?? 'outside the labeled regions'}. Correct answer: ${promptRegion.label}.`}
+                    Correct answer: {promptRegion.label}. All player choices are shown below and on
+                    the slice views.
                   </Text>
+                  <View style={styles.answerRevealList}>
+                    {groupedRoundAnswers.map((answerGroup) => (
+                      <View key={answerGroup.key} style={styles.answerRevealRow}>
+                        <Text style={styles.answerRevealNames}>{answerGroup.names.join(' + ')}</Text>
+                        <Text style={styles.answerRevealChoice}>
+                          {answerGroup.regionLabel ?? 'Outside the labeled regions'}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
                   {promptRegion.keyFunctions?.length ? (
                     <Text style={styles.teachingNote}>
                       Key functions: {promptRegion.keyFunctions.join(' • ')}.
@@ -479,7 +520,7 @@ export default function App() {
 
             <View style={styles.card}>
               {rankedScores.map((entry, index) => (
-                <View key={entry.player} style={styles.resultRow}>
+                <View key={`${entry.player}-${index}`} style={styles.resultRow}>
                   <Text style={styles.resultRank}>{index + 1}</Text>
                   <View style={styles.resultCopy}>
                     <Text style={styles.resultName}>{entry.player}</Text>
@@ -510,6 +551,44 @@ export default function App() {
 
 function formatCoordinate(coordinate: NonNullable<PendingGuess['coordinate']>) {
   return `x ${coordinate.x}, y ${coordinate.y}, z ${coordinate.z}`;
+}
+
+function groupAnswersByRegion(
+  answers: PlayerAnswer[],
+  players: string[],
+  layer: ReturnType<typeof getLayerById>
+) {
+  const groups = new Map<
+    string,
+    {
+      key: string;
+      regionId: string | null;
+      regionLabel: string | null;
+      names: string[];
+      coordinate: PendingGuess['coordinate'];
+    }
+  >();
+
+  answers.forEach((answer, index) => {
+    const key = answer.selectedRegionId ?? `outside-${index}`;
+    const existing = groups.get(key);
+    const name = players[answer.playerIndex] ?? `Player ${answer.playerIndex + 1}`;
+    if (existing) {
+      existing.names.push(name);
+      return;
+    }
+
+    groups.set(key, {
+      key,
+      regionId: answer.selectedRegionId,
+      regionLabel:
+        layer.regions.find((region) => region.id === answer.selectedRegionId)?.label ?? null,
+      names: [name],
+      coordinate: answer.coordinate,
+    });
+  });
+
+  return Array.from(groups.values());
 }
 
 const styles = StyleSheet.create({
@@ -925,6 +1004,26 @@ const styles = StyleSheet.create({
   feedbackTitle: {
     fontSize: 22,
     fontWeight: '800',
+  },
+  answerRevealList: {
+    gap: 8,
+  },
+  answerRevealRow: {
+    backgroundColor: '#18323d',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 3,
+  },
+  answerRevealNames: {
+    color: '#f2cf9f',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  answerRevealChoice: {
+    color: '#f7f3ea',
+    fontSize: 16,
+    fontWeight: '700',
   },
   correct: {
     color: '#8dd6a4',
