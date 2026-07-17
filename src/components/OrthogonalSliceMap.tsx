@@ -166,7 +166,7 @@ export function OrthogonalSliceMap({
       : Math.min(330, viewportAvailableWidth - 18);
   const sliceViewportHeight = windowWidth >= 920 ? 260 : 250;
   const previewRegionId =
-    !feedbackRegionId && settings.learningMode ? previewGuess?.selectedRegionId ?? null : null;
+    !feedbackRegionId ? previewGuess?.selectedRegionId ?? null : null;
   const correctFeedbackRegionId = feedbackRegionId;
   const previewValue = previewRegionId ? atlas.regionValueById[previewRegionId] ?? 0 : 0;
   const incorrectFeedbackValues = Array.from(

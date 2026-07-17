@@ -222,7 +222,7 @@ export function BrainMap({
                   const isIncorrectFeedback = region.id === incorrectFeedbackRegionId;
                   const isCorrectFeedback = isFeedback;
                   const isPreviewSelection =
-                    !feedbackRegionId && settings.learningMode && isSelected;
+                    !feedbackRegionId && isSelected;
 
                   const fillColor = isIncorrectFeedback
                     ? '#c74d4d'

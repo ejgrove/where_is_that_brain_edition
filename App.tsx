@@ -330,8 +330,8 @@ export default function App() {
                 <View style={styles.toggleCopy}>
                   <Text style={styles.toggleTitle}>Learning mode</Text>
                   <Text style={styles.toggleBody}>
-                    Shows the name and highlight of the region under the crosshair while choosing
-                    an answer. Keep this off for quiz play.
+                    Shows the name of the region under the crosshair while choosing an answer.
+                    The selected area stays highlighted in both modes.
                   </Text>
                 </View>
                 <Switch
